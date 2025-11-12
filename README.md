@@ -50,5 +50,6 @@ Lox-Analise-Lexica/
 👥Contribuidores
 
 
-Leônidas Serra	@leonidasserra
+Leônidas Serra	@leonidasserra  
+
 Isabela Oliveira	@isabelaodcm
