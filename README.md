@@ -35,17 +35,6 @@ mvn exec:java -Dexec.mainClass="Main"
 ```
 Nota: Certifique-se de que o pom.xml contém o plugin maven-exec-plugin para que o comando acima funcione.
 
-🧩 Estrutura de Pastas
-
-Lox-Analise-Lexica/
- ├── src/
- │   ├── main/java/
- │   │   └── ... (código-fonte do analisador)
- │   └── test/java/
- │       └── ... (testes, se houver)
- ├── pom.xml
- └── .gitignore
-
 
 👥Contribuidores
 
