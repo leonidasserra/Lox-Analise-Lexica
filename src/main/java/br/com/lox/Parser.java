@@ -56,5 +56,37 @@ public class Parser {
     public Expr parse() {
         return null;
     }
+
+    // ============================================
+    // REGRAS GRAMATICAIS - BASICAS
+    // ============================================
+
+    private Expr primary() {
+        if (match(TokenType.FALSE)) return new Expr.Literal(false);
+        if (match(TokenType.TRUE)) return new Expr.Literal(true);
+        if (match(TokenType.NIL)) return new Expr.Literal(null);
+
+        if (match(TokenType.NUMBER, TokenType.STRING)) {
+            return new Expr.Literal(previous().literal);
+        }
+
+        if (match(TokenType.LEFT_PAREN)) {
+            Expr expr = expression();
+            consume(TokenType.RIGHT_PAREN, "Esperado ')' após expressão.");
+            return new Expr.Grouping(expr);
+        }
+
+        throw new RuntimeException("Esperado expressão.");
+    }
+
+    private Expr unary() {
+        if (match(TokenType.BANG, TokenType.MINUS)) {
+            Token operator = previous();
+            Expr right = unary();
+            return new Expr.Unary(operator, right);
+        }
+        return primary();
+    }
+
 }
 
