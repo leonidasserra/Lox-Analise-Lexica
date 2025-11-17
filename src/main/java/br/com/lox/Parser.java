@@ -1,6 +1,5 @@
 package br.com.lox;
 
-
 import java.util.List;
 
 public class Parser {
@@ -52,14 +51,13 @@ public class Parser {
         throw new RuntimeException(message + " Encontrado: " + peek().lexeme);
     }
 
-
-    public Expr parse() {
-        return null;
-    }
-
     // ============================================
     // REGRAS GRAMATICAIS - BASICAS
     // ============================================
+
+    public Expr parse() {
+        return expression();
+    }
 
     private Expr primary() {
         if (match(TokenType.FALSE)) return new Expr.Literal(false);
@@ -137,6 +135,7 @@ public class Parser {
         return expr;
     }
 
-
+    private Expr expression() {
+        return equality();
+    }
 }
-
