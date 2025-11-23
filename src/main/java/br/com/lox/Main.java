@@ -4,17 +4,18 @@ public class Main {
     public static void main(String[] args) {
 
         String source = """
-            1 + 2 * (3 - 4) == 5;
+            1 + 2 * (3 - 4);
             """;
 
         Scanner scanner = new Scanner(source);
         var tokens = scanner.scanTokens();
 
         Parser parser = new Parser(tokens);
-        Expr expr = parser.parse();
+        Expr expression = parser.parse();
 
-        AstPrinter printer = new AstPrinter();
-        System.out.println(printer.print(expr));
+        Interpreter interpreter = new Interpreter();
+        interpreter.interpret(expression);  // <<< NÃO retorna, apenas executa
+
+        System.out.println("Execução concluída.");
     }
-
 }

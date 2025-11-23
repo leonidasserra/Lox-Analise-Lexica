@@ -22,6 +22,8 @@ public class Lox {
     }
 
     static boolean hadError = false;
+    
+    static boolean hadRuntimeError = false;
 
     static void error(int line, String message) {
         report(line, "", message);
@@ -56,16 +58,19 @@ public class Lox {
         Scanner scanner = new Scanner(source);
         List<Token> tokens = scanner.scanTokens();
 
-        for (Token token : tokens) {
-            System.out.println(token);
-        }
+        Parser parser = new Parser(tokens);
+        Expr expression = parser.parse();
+
+        if (hadError) return;
+
+        Interpreter interpreter = new Interpreter();
+        interpreter.interpret(expression);
+
     }
 
     static void runtimeError(RuntimeError error) {
         System.err.println(error.getMessage() + "\n[line " + error.token.line + "]");
         hadRuntimeError = true;
     }
-
-    static boolean hadRuntimeError = false;
 
 }
