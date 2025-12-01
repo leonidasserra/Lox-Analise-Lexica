@@ -1,5 +1,6 @@
 package br.com.lox;
 
+import java.util.ArrayList;
 import java.util.List;
 
 public class Parser {
@@ -10,100 +11,44 @@ public class Parser {
         this.tokens = tokens;
     }
 
-    // ============================================
-    // MÉTODOS BASE
-    // ============================================
-
-    private boolean match(TokenType... types) {
-        for (TokenType type : types) {
-            if (check(type)) {
-                advance();
-                return true;
-            }
+    // parse -> program : list of statements
+    public List<Stmt> parse() {
+        List<Stmt> statements = new ArrayList<>();
+        while (!isAtEnd()) {
+            statements.add(statement());
         }
-        return false;
+        return statements;
     }
 
-    private boolean check(TokenType type) {
-        if (isAtEnd()) return false;
-        return peek().type == type;
+    // statement -> printStmt | exprStmt
+    private Stmt statement() {
+        if (match(TokenType.PRINT)) return printStatement();
+        return expressionStatement();
     }
 
-    private Token advance() {
-        if (!isAtEnd()) current++;
-        return previous();
+    private Stmt printStatement() {
+        Expr value = expression();
+        consume(TokenType.SEMICOLON, "Expect ';' after value.");
+        return new Stmt.Print(value);
     }
 
-    private boolean isAtEnd() {
-        return peek().type == TokenType.EOF;
+    private Stmt expressionStatement() {
+        Expr expr = expression();
+        consume(TokenType.SEMICOLON, "Expect ';' after expression.");
+        return new Stmt.Expression(expr);
     }
 
-    private Token peek() {
-        return tokens.get(current);
+    // === expression parsing ===
+    private Expr expression() {
+        return equality();
     }
 
-    private Token previous() {
-        return tokens.get(current - 1);
-    }
+    private Expr equality() {
+        Expr expr = comparison();
 
-    private Token consume(TokenType type, String message) {
-        if (check(type)) return advance();
-        throw new RuntimeException(message + " Encontrado: " + peek().lexeme);
-    }
-
-    // ============================================
-    // REGRAS GRAMATICAIS - BASICAS
-    // ============================================
-
-    public Expr parse() {
-        return expression();
-    }
-
-    private Expr primary() {
-        if (match(TokenType.FALSE)) return new Expr.Literal(false);
-        if (match(TokenType.TRUE)) return new Expr.Literal(true);
-        if (match(TokenType.NIL)) return new Expr.Literal(null);
-
-        if (match(TokenType.NUMBER, TokenType.STRING)) {
-            return new Expr.Literal(previous().literal);
-        }
-
-        if (match(TokenType.LEFT_PAREN)) {
-            Expr expr = expression();
-            consume(TokenType.RIGHT_PAREN, "Esperado ')' após expressão.");
-            return new Expr.Grouping(expr);
-        }
-
-        throw new RuntimeException("Esperado expressão.");
-    }
-
-    private Expr unary() {
-        if (match(TokenType.BANG, TokenType.MINUS)) {
+        while (match(TokenType.BANG_EQUAL, TokenType.EQUAL_EQUAL)) {
             Token operator = previous();
-            Expr right = unary();
-            return new Expr.Unary(operator, right);
-        }
-        return primary();
-    }
-
-    private Expr factor() {
-        Expr expr = unary();
-
-        while (match(TokenType.SLASH, TokenType.STAR)) {
-            Token operator = previous();
-            Expr right = unary();
-            expr = new Expr.Binary(expr, operator, right);
-        }
-
-        return expr;
-    }
-
-    private Expr term() {
-        Expr expr = factor();
-
-        while (match(TokenType.MINUS, TokenType.PLUS)) {
-            Token operator = previous();
-            Expr right = factor();
+            Expr right = comparison();
             expr = new Expr.Binary(expr, operator, right);
         }
 
@@ -123,19 +68,110 @@ public class Parser {
         return expr;
     }
 
-    private Expr equality() {
-        Expr expr = comparison();
+    private Expr term() {
+        Expr expr = factor();
 
-        while (match(TokenType.BANG_EQUAL, TokenType.EQUAL_EQUAL)) {
+        while (match(TokenType.MINUS, TokenType.PLUS)) {
             Token operator = previous();
-            Expr right = comparison();
+            Expr right = factor();
             expr = new Expr.Binary(expr, operator, right);
         }
 
         return expr;
     }
 
-    private Expr expression() {
-        return equality();
+    private Expr factor() {
+        Expr expr = unary();
+
+        while (match(TokenType.SLASH, TokenType.STAR)) {
+            Token operator = previous();
+            Expr right = unary();
+            expr = new Expr.Binary(expr, operator, right);
+        }
+
+        return expr;
+    }
+
+    private Expr unary() {
+        if (match(TokenType.BANG, TokenType.MINUS)) {
+            Token operator = previous();
+            Expr right = unary();
+            return new Expr.Unary(operator, right);
+        }
+        return primary();
+    }
+
+    private Expr primary() {
+        if (match(TokenType.FALSE)) return new Expr.Literal(false);
+        if (match(TokenType.TRUE)) return new Expr.Literal(true);
+        if (match(TokenType.NIL)) return new Expr.Literal(null);
+
+        if (match(TokenType.NUMBER, TokenType.STRING)) {
+            return new Expr.Literal(previous().literal);
+        }
+
+        if (match(TokenType.LEFT_PAREN)) {
+            Expr expr = expression();
+            consume(TokenType.RIGHT_PAREN, "Expect ')' after expression.");
+            return new Expr.Grouping(expr);
+        }
+
+        throw new RuntimeException("Expect expression.");
+    }
+
+    // helpers
+    private boolean match(TokenType... types) {
+        for (TokenType type : types) {
+            if (check(type)) {
+                advance();
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private Token consume(TokenType type, String message) {
+        if (check(type)) return advance();
+        throw new RuntimeException(message + " Found: " + peek().lexeme);
+    }
+
+    private boolean check(TokenType type) {
+        if (isAtEnd()) return false;
+        return peek().type == type;
+    }
+
+    private Token advance() {
+        if (!isAtEnd()) current++;
+        return previous();
+    }
+
+    private boolean isAtEnd() {
+        return peek().type == TokenType.EOF;
+    }
+
+    private Token peek() { return tokens.get(current); }
+
+    private Token previous() { return tokens.get(current - 1); }
+
+    // basic synchronization for future error recovery (kept as in book)
+    void synchronize() {
+        advance();
+
+        while (!isAtEnd()) {
+            if (previous().type == TokenType.SEMICOLON) return;
+
+            switch (peek().type) {
+                case CLASS:
+                case FUN:
+                case VAR:
+                case FOR:
+                case IF:
+                case WHILE:
+                case RETURN:
+                    return;
+            }
+
+            advance();
+        }
     }
 }

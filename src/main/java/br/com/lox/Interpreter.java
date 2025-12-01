@@ -1,16 +1,29 @@
 package br.com.lox;
 
-class Interpreter implements Expr.Visitor<Object> {
+import java.util.List;
 
-    void interpret(Expr expression) {
+public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
+
+    // No Environment yet — will be added in next commit.
+    public Interpreter() {}
+
+    // NEW: interpret a program (list of statements)
+    public void interpret(List<Stmt> statements) {
         try {
-            Object value = evaluate(expression);
-            System.out.println(stringify(value));
+            for (Stmt stmt : statements) {
+                execute(stmt);
+            }
         } catch (RuntimeError error) {
             Lox.runtimeError(error);
         }
     }
 
+    // helper for single stmt execution
+    private void execute(Stmt stmt) {
+        stmt.accept(this);
+    }
+
+    // expression evaluation
     private Object evaluate(Expr expr) {
         return expr.accept(this);
     }
@@ -92,8 +105,21 @@ class Interpreter implements Expr.Visitor<Object> {
         return null;
     }
 
-    // -------------------- utils --------------------
+    // ===== Stmt visitors (new) =====
+    @Override
+    public Void visitExpressionStmt(Stmt.Expression stmt) {
+        evaluate(stmt.expression);
+        return null;
+    }
 
+    @Override
+    public Void visitPrintStmt(Stmt.Print stmt) {
+        Object value = evaluate(stmt.expression);
+        System.out.println(stringify(value));
+        return null;
+    }
+
+    // ===== utilities =====
     private boolean isTruthy(Object obj) {
         if (obj == null) return false;
         if (obj instanceof Boolean) return (boolean) obj;
