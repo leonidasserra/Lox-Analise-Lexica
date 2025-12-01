@@ -11,18 +11,39 @@ public class Parser {
         this.tokens = tokens;
     }
 
-    // parse -> program : list of statements
+    // parse -> series of declarations
     public List<Stmt> parse() {
         List<Stmt> statements = new ArrayList<>();
         while (!isAtEnd()) {
-            statements.add(statement());
+            statements.add(declaration());
         }
         return statements;
     }
 
-    // statement -> printStmt | exprStmt
+    private Stmt declaration() {
+        try {
+            if (match(TokenType.VAR)) return varDeclaration();
+            return statement();
+        } catch (RuntimeException error) {
+            synchronize();
+            return null;
+        }
+    }
+
+    private Stmt varDeclaration() {
+        Token name = consume(TokenType.IDENTIFIER, "Expect variable name.");
+        Expr initializer = null;
+        if (match(TokenType.EQUAL)) {
+            initializer = expression();
+        }
+        consume(TokenType.SEMICOLON, "Expect ';' after variable declaration.");
+        return new Stmt.Var(name, initializer);
+    }
+
+    // statement -> print | expr | block
     private Stmt statement() {
         if (match(TokenType.PRINT)) return printStatement();
+        if (match(TokenType.LEFT_BRACE)) return new Stmt.Block(block());
         return expressionStatement();
     }
 
@@ -38,9 +59,37 @@ public class Parser {
         return new Stmt.Expression(expr);
     }
 
+    private java.util.List<Stmt> block() {
+        java.util.List<Stmt> statements = new java.util.ArrayList<>();
+        while (!check(TokenType.RIGHT_BRACE) && !isAtEnd()) {
+            statements.add(declaration());
+        }
+        consume(TokenType.RIGHT_BRACE, "Expect '}' after block.");
+        return statements;
+    }
+
     // === expression parsing ===
     private Expr expression() {
-        return equality();
+        return assignment();
+    }
+
+    // assignment -> IDENTIFIER "=" assignment | equality ;
+    private Expr assignment() {
+        Expr expr = equality();
+
+        if (match(TokenType.EQUAL)) {
+            Token equals = previous();
+            Expr value = assignment();
+
+            if (expr instanceof Expr.Variable) {
+                Token name = ((Expr.Variable) expr).name;
+                return new Expr.Assign(name, value);
+            }
+
+            throw new RuntimeException("Invalid assignment target.");
+        }
+
+        return expr;
     }
 
     private Expr equality() {
@@ -110,6 +159,10 @@ public class Parser {
             return new Expr.Literal(previous().literal);
         }
 
+        if (match(TokenType.IDENTIFIER)) {
+            return new Expr.Variable(previous());
+        }
+
         if (match(TokenType.LEFT_PAREN)) {
             Expr expr = expression();
             consume(TokenType.RIGHT_PAREN, "Expect ')' after expression.");
@@ -153,7 +206,6 @@ public class Parser {
 
     private Token previous() { return tokens.get(current - 1); }
 
-    // basic synchronization for future error recovery (kept as in book)
     void synchronize() {
         advance();
 

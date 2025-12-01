@@ -4,10 +4,10 @@ import java.util.List;
 
 public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
 
-    // No Environment yet — will be added in next commit.
+    private Environment environment = new Environment();
+
     public Interpreter() {}
 
-    // NEW: interpret a program (list of statements)
     public void interpret(List<Stmt> statements) {
         try {
             for (Stmt stmt : statements) {
@@ -18,12 +18,10 @@ public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
         }
     }
 
-    // helper for single stmt execution
     private void execute(Stmt stmt) {
         stmt.accept(this);
     }
 
-    // expression evaluation
     private Object evaluate(Expr expr) {
         return expr.accept(this);
     }
@@ -59,30 +57,6 @@ public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
         Object right = evaluate(expr.right);
 
         switch (expr.operator.type) {
-
-            case GREATER:
-                checkNumberOperands(expr.operator, left, right);
-                return (double) left > (double) right;
-
-            case GREATER_EQUAL:
-                checkNumberOperands(expr.operator, left, right);
-                return (double) left >= (double) right;
-
-            case LESS:
-                checkNumberOperands(expr.operator, left, right);
-                return (double) left < (double) right;
-
-            case LESS_EQUAL:
-                checkNumberOperands(expr.operator, left, right);
-                return (double) left <= (double) right;
-
-            case BANG_EQUAL: return !isEqual(left, right);
-            case EQUAL_EQUAL: return isEqual(left, right);
-
-            case MINUS:
-                checkNumberOperands(expr.operator, left, right);
-                return (double) left - (double) right;
-
             case PLUS:
                 if (left instanceof Double && right instanceof Double) {
                     return (double) left + (double) right;
@@ -90,22 +64,38 @@ public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
                 if (left instanceof String || right instanceof String) {
                     return String.valueOf(left) + String.valueOf(right);
                 }
-                throw new RuntimeError(expr.operator,
-                        "Operands must be two numbers or two strings.");
-
-            case SLASH:
+                throw new RuntimeError(expr.operator, "Operands must be two numbers or at least one string.");
+            case MINUS:
                 checkNumberOperands(expr.operator, left, right);
-                return (double) left / (double) right;
-
+                return (double) left - (double) right;
             case STAR:
                 checkNumberOperands(expr.operator, left, right);
                 return (double) left * (double) right;
+            case SLASH:
+                checkNumberOperands(expr.operator, left, right);
+                return (double) left / (double) right;
+            case GREATER:
+                checkNumberOperands(expr.operator, left, right);
+                return (double) left > (double) right;
+            case GREATER_EQUAL:
+                checkNumberOperands(expr.operator, left, right);
+                return (double) left >= (double) right;
+            case LESS:
+                checkNumberOperands(expr.operator, left, right);
+                return (double) left < (double) right;
+            case LESS_EQUAL:
+                checkNumberOperands(expr.operator, left, right);
+                return (double) left <= (double) right;
+            case EQUAL_EQUAL:
+                return isEqual(left, right);
+            case BANG_EQUAL:
+                return !isEqual(left, right);
         }
 
         return null;
     }
 
-    // ===== Stmt visitors (new) =====
+    // Stmt visitors
     @Override
     public Void visitExpressionStmt(Stmt.Expression stmt) {
         evaluate(stmt.expression);
@@ -119,7 +109,23 @@ public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
         return null;
     }
 
-    // ===== utilities =====
+    @Override
+    public Void visitVarStmt(Stmt.Var stmt) {
+        Object value = null;
+        if (stmt.initializer != null) {
+            value = evaluate(stmt.initializer);
+        }
+        environment.define(stmt.name.lexeme, value);
+        return null;
+    }
+
+    // Expr variable access
+    @Override
+    public Object visitVariableExpr(Expr.Variable expr) {
+        return environment.get(expr.name);
+    }
+
+    // Utilities
     private boolean isTruthy(Object obj) {
         if (obj == null) return false;
         if (obj instanceof Boolean) return (boolean) obj;
@@ -142,17 +148,13 @@ public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
         throw new RuntimeError(operator, "Operands must be numbers.");
     }
 
-    private String stringify(Object object) {
-        if (object == null) return "nil";
-
-        if (object instanceof Double) {
-            String text = object.toString();
-            if (text.endsWith(".0")) {
-                text = text.substring(0, text.length() - 2);
-            }
+    private String stringify(Object obj) {
+        if (obj == null) return "nil";
+        if (obj instanceof Double) {
+            String text = obj.toString();
+            if (text.endsWith(".0")) text = text.substring(0, text.length() - 2);
             return text;
         }
-
-        return object.toString();
+        return obj.toString();
     }
 }
