@@ -3,11 +3,13 @@ package br.com.lox;
 import java.util.List;
 
 public abstract class Stmt {
+
     public interface Visitor<R> {
         R visitExpressionStmt(Expression stmt);
         R visitPrintStmt(Print stmt);
         R visitVarStmt(Var stmt);
         R visitBlockStmt(Block stmt);
+        R visitIfStmt(If stmt); // ADICIONADO
     }
 
     public static class Expression extends Stmt {
@@ -33,6 +35,24 @@ public abstract class Stmt {
         public final List<Stmt> statements;
         public Block(List<Stmt> statements) { this.statements = statements; }
         @Override <R> R accept(Visitor<R> visitor) { return visitor.visitBlockStmt(this); }
+    }
+
+    // ADICIONADO
+    public static class If extends Stmt {
+        public final Expr condition;
+        public final Stmt thenBranch;
+        public final Stmt elseBranch;
+
+        public If(Expr condition, Stmt thenBranch, Stmt elseBranch) {
+            this.condition = condition;
+            this.thenBranch = thenBranch;
+            this.elseBranch = elseBranch;
+        }
+
+        @Override
+        <R> R accept(Visitor<R> visitor) {
+            return visitor.visitIfStmt(this);
+        }
     }
 
     abstract <R> R accept(Visitor<R> visitor);
