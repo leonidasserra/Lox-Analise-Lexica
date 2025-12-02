@@ -9,7 +9,7 @@ public abstract class Stmt {
         R visitPrintStmt(Print stmt);
         R visitVarStmt(Var stmt);
         R visitBlockStmt(Block stmt);
-        R visitIfStmt(If stmt); // ADICIONADO
+        R visitIfStmt(If stmt);
     }
 
     public static class Expression extends Stmt {
@@ -37,7 +37,6 @@ public abstract class Stmt {
         @Override <R> R accept(Visitor<R> visitor) { return visitor.visitBlockStmt(this); }
     }
 
-    // ADICIONADO
     public static class If extends Stmt {
         public final Expr condition;
         public final Stmt thenBranch;
@@ -54,6 +53,7 @@ public abstract class Stmt {
             return visitor.visitIfStmt(this);
         }
     }
+
 
     abstract <R> R accept(Visitor<R> visitor);
 }
