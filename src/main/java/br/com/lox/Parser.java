@@ -3,6 +3,8 @@ package br.com.lox;
 import java.util.ArrayList;
 import java.util.List;
 
+import static br.com.lox.TokenType.*;
+
 public class Parser {
     private final List<Token> tokens;
     private int current = 0;
@@ -45,6 +47,8 @@ public class Parser {
         if (match(TokenType.PRINT)) return printStatement();
         if (match(TokenType.LEFT_BRACE)) return new Stmt.Block(block());
         if (match(IF)) return ifStatement();
+        if (match(WHILE)) return whileStatement();
+
         return expressionStatement();
     }
 
@@ -164,9 +168,9 @@ public class Parser {
             return new Expr.Variable(previous());
         }
 
-        if (match(TokenType.LEFT_PAREN)) {
+        if (match(LEFT_PAREN)) {
             Expr expr = expression();
-            consume(TokenType.RIGHT_PAREN, "Expect ')' after expression.");
+            consume(RIGHT_PAREN, "Expect ')' after expression.");
             return new Expr.Grouping(expr);
         }
 
@@ -265,4 +269,13 @@ public class Parser {
 
         return expr;
     }
+
+    private Stmt whileStatement() {
+        consume(LEFT_PAREN, "Expect '(' after 'while'.");
+        Expr condition = expression();
+        consume(RIGHT_PAREN, "Expect ')' after condition.");
+        Stmt body = statement();
+        return new Stmt.While(condition, body);
+    }
+
 }

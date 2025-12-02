@@ -19,7 +19,8 @@ public class GenerateAst {
                 "Literal  : Object value",
                 "Unary    : Token operator, Expr right",
                 "If         : Expr condition, Stmt thenBranch, Stmt elseBranch",
-                "Logical  : Expr left, Token operator, Expr right"
+                "Logical  : Expr left, Token operator, Expr right",
+                "While      : Expr condition, Stmt body"
                 ));
     }
 
