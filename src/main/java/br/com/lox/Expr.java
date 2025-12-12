@@ -1,5 +1,7 @@
 package br.com.lox;
 
+import java.util.List;
+
 abstract class Expr {
     interface Visitor<R> {
         R visitBinaryExpr(Binary expr);
@@ -9,6 +11,7 @@ abstract class Expr {
         R visitVariableExpr(Variable expr);
         R visitAssignExpr(Assign expr);
         R visitLogicalExpr(Logical expr);
+        R visitCallExpr(Call expr); // NEW
     }
 
     abstract <R> R accept(Visitor<R> visitor);
@@ -99,5 +102,18 @@ abstract class Expr {
         <R> R accept(Visitor<R> visitor) {
             return visitor.visitLogicalExpr(this);
         }
+    }
+
+    // NEW: call expression
+    public static class Call extends Expr {
+        public final Expr callee;
+        public final Token paren; // closing paren token, useful for errors
+        public final List<Expr> arguments;
+        public Call(Expr callee, Token paren, List<Expr> arguments) {
+            this.callee = callee;
+            this.paren = paren;
+            this.arguments = arguments;
+        }
+        @Override <R> R accept(Visitor<R> visitor) { return visitor.visitCallExpr(this); }
     }
 }
