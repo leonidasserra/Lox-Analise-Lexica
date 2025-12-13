@@ -57,6 +57,7 @@ public class Parser {
         try {
             if (match(TokenType.VAR)) return varDeclaration();
             if (match(TokenType.FUN)) return function("function");
+            if (match(TokenType.CLASS)) return classDeclaration();
             return statement();
         } catch (RuntimeException error) {
             synchronize();
@@ -391,5 +392,19 @@ public class Parser {
         return body;
     }
 
-
+    private Stmt classDeclaration() {
+        Token name = consume(TokenType.IDENTIFIER, "Expect class name.");
+        Expr.Variable superclass = null;
+        if (match(TokenType.LESS)) {
+            consume(TokenType.IDENTIFIER, "Expect superclass name.");
+            superclass = new Expr.Variable(previous());
+        }
+        consume(TokenType.LEFT_BRACE, "Expect '{' before class body.");
+        List<Stmt.Function> methods = new java.util.ArrayList<>();
+        while (!check(TokenType.RIGHT_BRACE) && !isAtEnd()) {
+            methods.add((Stmt.Function) function("method"));
+        }
+        consume(TokenType.RIGHT_BRACE, "Expect '}' after class body.");
+        return new Stmt.Class(name, superclass, methods);
+    }
 }

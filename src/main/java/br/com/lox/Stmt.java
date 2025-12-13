@@ -13,6 +13,7 @@ public abstract class Stmt {
         R visitWhileStmt(While stmt);
         R visitFunctionStmt(Function stmt);
         R visitReturnStmt(Return stmt);
+        R visitClassStmt(Class stmt);
 
     }
 
@@ -91,6 +92,17 @@ public abstract class Stmt {
         public Return(Token keyword, Expr value) { this.keyword = keyword; this.value = value; }
         @Override <R> R accept(Visitor<R> visitor) { return visitor.visitReturnStmt(this); }
     }
+
+    public static class Class extends Stmt {
+        public final Token name;
+        public final Expr.Variable superclass; // can be null
+        public final List<Stmt.Function> methods;
+        public Class(Token name, Expr.Variable superclass, List<Stmt.Function> methods) {
+            this.name = name; this.superclass = superclass; this.methods = methods;
+        }
+        @Override <R> R accept(Visitor<R> visitor) { return visitor.visitClassStmt(this); }
+    }
+
 
     abstract <R> R accept(Visitor<R> visitor);
 }

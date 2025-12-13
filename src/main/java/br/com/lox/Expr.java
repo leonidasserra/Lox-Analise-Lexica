@@ -1,6 +1,7 @@
 package br.com.lox;
 
 import java.util.List;
+import java.util.Set;
 
 abstract class Expr {
     interface Visitor<R> {
@@ -11,9 +12,12 @@ abstract class Expr {
         R visitVariableExpr(Variable expr);
         R visitAssignExpr(Assign expr);
         R visitLogicalExpr(Logical expr);
-        R visitCallExpr(Call expr); // NEW
+        R visitCallExpr(Call expr);
+        R visitGetExpr(Get expr);
+        R visitSetExpr(Set expr);
+        R visitThisExpr(This expr);
+        R visitSuperExpr(Super expr);
     }
-
     abstract <R> R accept(Visitor<R> visitor);
 
     public static class Binary extends Expr {
@@ -104,7 +108,6 @@ abstract class Expr {
         }
     }
 
-    // NEW: call expression
     public static class Call extends Expr {
         public final Expr callee;
         public final Token paren; // closing paren token, useful for errors
@@ -116,4 +119,33 @@ abstract class Expr {
         }
         @Override <R> R accept(Visitor<R> visitor) { return visitor.visitCallExpr(this); }
     }
+
+    public static class Get extends Expr {
+        public final Expr object;
+        public final Token name;
+        public Get(Expr object, Token name) { this.object = object; this.name = name; }
+        @Override <R> R accept(Visitor<R> visitor) { return visitor.visitGetExpr(this); }
+    }
+
+    public static class Set extends Expr {
+        public final Expr object;
+        public final Token name;
+        public final Expr value;
+        public Set(Expr object, Token name, Expr value) { this.object = object; this.name = name; this.value = value; }
+        @Override <R> R accept(Visitor<R> visitor) { return visitor.visitSetExpr(this); }
+    }
+
+    public static class This extends Expr {
+        public final Token keyword;
+        public This(Token keyword) { this.keyword = keyword; }
+        @Override <R> R accept(Visitor<R> visitor) { return visitor.visitThisExpr(this); }
+    }
+
+    public static class Super extends Expr {
+        public final Token keyword;
+        public final Token method;
+        public Super(Token keyword, Token method) { this.keyword = keyword; this.method = method; }
+        @Override <R> R accept(Visitor<R> visitor) { return visitor.visitSuperExpr(this); }
+    }
+
 }
