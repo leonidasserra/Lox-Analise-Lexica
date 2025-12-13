@@ -61,12 +61,16 @@ public class Lox {
         Parser parser = new Parser(tokens);
         List<Stmt> statements = parser.parse();
 
-        // Stop if there was a syntax error.
+        // Para se houver um erro de sintaxe
         if (hadError) return;
 
         Interpreter interpreter = new Interpreter();
+        Resolver resolver = new Resolver(interpreter);
+        resolver.resolve(statements);
+
         interpreter.interpret(statements);
     }
+
 
 
     static void runtimeError(RuntimeError error) {
