@@ -12,7 +12,9 @@ public class Resolver implements Expr.Visitor<Void>, Stmt.Visitor<Void> {
     private final Map<Expr, Integer> locals = new HashMap<>();
 
     private enum FunctionType { NONE, FUNCTION, INITIALIZER, METHOD }
+    private enum ClassType { NONE, CLASS, SUBCLASS }
     private FunctionType currentFunction = FunctionType.NONE;
+    private ClassType currentClass = ClassType.NONE;
 
     public Resolver(Interpreter interpreter) {
         this.interpreter = interpreter;
@@ -20,7 +22,6 @@ public class Resolver implements Expr.Visitor<Void>, Stmt.Visitor<Void> {
 
     public void resolve(List<Stmt> statements) {
         for (Stmt statement : statements) resolve(statement);
-        // register locals map to interpreter
         interpreter.setLocals(locals);
     }
 
@@ -44,7 +45,6 @@ public class Resolver implements Expr.Visitor<Void>, Stmt.Visitor<Void> {
         if (scopes.isEmpty()) return;
         Map<String, Boolean> scope = scopes.peek();
         if (scope.containsKey(name.lexeme)) {
-            // duplicate declaration in same scope
             throw new RuntimeException("Variable with this name already declared in this scope: " + name.lexeme);
         }
         scope.put(name.lexeme, false);
@@ -62,7 +62,6 @@ public class Resolver implements Expr.Visitor<Void>, Stmt.Visitor<Void> {
                 return;
             }
         }
-        // not found => global
     }
 
     // --- Stmt visitors ---
@@ -88,6 +87,41 @@ public class Resolver implements Expr.Visitor<Void>, Stmt.Visitor<Void> {
         declare(stmt.name);
         define(stmt.name);
         resolveFunction(stmt, FunctionType.FUNCTION);
+        return null;
+    }
+
+    @Override
+    public Void visitClassStmt(Stmt.Class stmt) {
+        ClassType enclosingClass = currentClass;
+        currentClass = ClassType.CLASS;
+
+        declare(stmt.name);
+        define(stmt.name);
+
+        if (stmt.superclass != null) {
+            currentClass = ClassType.SUBCLASS;
+            resolve(stmt.superclass);
+        }
+
+        if (stmt.superclass != null) {
+            beginScope();
+            scopes.peek().put("super", true);
+        }
+
+        beginScope();
+        scopes.peek().put("this", true);
+
+        for (Stmt.Function method : stmt.methods) {
+            FunctionType declaration = FunctionType.METHOD;
+            if (method.name.lexeme.equals("init")) declaration = FunctionType.INITIALIZER;
+            resolveFunction(method, declaration);
+        }
+
+        endScope();
+
+        if (stmt.superclass != null) endScope();
+
+        currentClass = enclosingClass;
         return null;
     }
 
@@ -188,6 +222,39 @@ public class Resolver implements Expr.Visitor<Void>, Stmt.Visitor<Void> {
     public Void visitCallExpr(Expr.Call expr) {
         resolve(expr.callee);
         for (Expr arg: expr.arguments) resolve(arg);
+        return null;
+    }
+
+    @Override
+    public Void visitGetExpr(Expr.Get expr) {
+        resolve(expr.object);
+        return null;
+    }
+
+    @Override
+    public Void visitSetExpr(Expr.Set expr) {
+        resolve(expr.value);
+        resolve(expr.object);
+        return null;
+    }
+
+    @Override
+    public Void visitThisExpr(Expr.This expr) {
+        if (currentClass == ClassType.NONE) {
+            throw new RuntimeException("Can't use 'this' outside of a class.");
+        }
+        resolveLocal(expr, expr.keyword);
+        return null;
+    }
+
+    @Override
+    public Void visitSuperExpr(Expr.Super expr) {
+        if (currentClass == ClassType.NONE) {
+            throw new RuntimeException("Can't use 'super' outside of a class.");
+        } else if (currentClass != ClassType.SUBCLASS) {
+            throw new RuntimeException("Can't use 'super' in a class with no superclass.");
+        }
+        resolveLocal(expr, expr.keyword);
         return null;
     }
 
