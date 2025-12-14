@@ -315,4 +315,22 @@ public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
         environment.assign(stmt.name, klass);
         return null;
     }
+
+    @Override
+    public Object visitThisExpr(Expr.This expr) {
+        return lookUpVariable(expr.keyword, expr);
+    }
+
+    @Override
+    public Object visitSuperExpr(Expr.Super expr) {
+        Integer distance = locals.get(expr);
+        LoxClass superclass = (LoxClass) environment.getAt(distance, "super");
+        LoxInstance object = (LoxInstance) environment.getAt(distance - 1, "this");
+        LoxFunction method = superclass.findMethod(expr.method.lexeme);
+        if (method == null) {
+            throw new RuntimeError(expr.method, "Undefined property '" + expr.method.lexeme + "'.");
+        }
+        return method.bind(object);
+    }
+
 }
