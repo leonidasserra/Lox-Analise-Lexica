@@ -1,0 +1,23 @@
+print clock();
+
+fun add(a, b) {
+  return a + b;
+}
+print add(2,3);
+
+class Foo {
+  init(x) { this.x = x; }
+  getX() { return this.x; }
+}
+
+var f = Foo(10);
+print f.getX(); // 10
+
+{
+  var a = "outer";
+  {
+    var a = "inner";
+    print a;
+  }
+  print a;
+}
