@@ -40,14 +40,32 @@ public class Lox {
         InputStreamReader input = new InputStreamReader(System.in);
         BufferedReader reader = new BufferedReader(input);
 
+        StringBuilder buffer = new StringBuilder();
+        int openBraces = 0;
+
         for (;;) {
-            System.out.print("> ");
+            System.out.print(buffer.length() == 0 ? "> " : "... ");
             String line = reader.readLine();
             if (line == null) break;
 
-            run(line);
+            buffer.append(line).append("\n");
 
-            // Reset apenas erros de compilação entre comandos
+            // Conta chaves
+            for (char c : line.toCharArray()) {
+                if (c == '{') openBraces++;
+                if (c == '}') openBraces--;
+            }
+
+            // Ainda esperando fechar bloco
+            if (openBraces > 0) continue;
+
+            // Executa bloco completo
+            run(buffer.toString());
+
+            // Reset
+            buffer.setLength(0);
+            openBraces = 0;
+
             hadError = false;
         }
     }
@@ -59,7 +77,6 @@ public class Lox {
         Parser parser = new Parser(tokens);
         List<Stmt> statements = parser.parse();
 
-        // Para se houver erro de sintaxe
         if (hadError) return;
 
         Resolver resolver = new Resolver(interpreter);
